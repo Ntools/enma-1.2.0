@@ -1,0 +1,193 @@
+
+			ENMA インストール手順
+
+* 対応OS
+  - Linux
+  - FreeBSD, NetBSD
+  - MacOS X 10.5.x
+  - Solaris 10 以降
+
+* 必要なソフトウェア
+  - GNU C Compiler
+  - GNU Make
+  - OpenSSL (0.9.8 以降)
+  - リゾルバライブラリ
+    - ldns (1.6.0 以降)
+    または
+    - libbind (bind 9 以降 または libbind 6.0 以降)
+  - libmilter (sendmail 8.13 以降)
+
+* ビルドから起動までの手順
+
+  1. 展開
+
+    $ tar xzf enma-x.y.z.tar.gz
+    $ cd enma-x.y.z
+
+  2. 依存するライブラリのインストール
+
+  「依存するライブラリのビルド」を参考に OpenSSL、ldns および
+   libmilter をインストールしてください。
+
+  3. configure の実行
+
+    OpenSSL、ldns および libmilter のヘッダとライブラリが
+    "/usr/local" にインストールされている場合は、引数なしで configure
+    を実行します。
+
+    $ ./configure
+
+    それ以外のディレクトリにインストールされている場合は、--with-ssl、
+    --with-ldns および --with-libmilter オプションで、基底ディレクトリを
+    指定してください
+
+    たとえば、OpenSSL の基底ディレクトリが "/foo"、ldns が "/bar"、
+    libmilter が "/baz" のときは、以下のように実行します。
+
+    $ ./configure --with-ssl=/foo --with-ldns=/bar --with-libmilter=/baz
+
+  4. ビルドの実行
+
+    $ make
+
+  5. インストール
+
+    $ sudo make install
+
+  6. 設定ファイルの準備
+
+    $ sudo cp enma/etc/enma.conf.sample /etc/enma.conf
+
+  7. PID ファイル用ディレクトリの作成
+
+    サンプルの設定ファイルでは "milter.pidfile" に
+    "/var/run/enma/enma.pid" を指定しています。そこで、設定項目
+    "milter.user" で指定したユーザ権限で、このディレクトリに書き込める
+    ようにパーミッションを設定します。
+
+    $ sudo mkdir -p /var/run/enma
+    $ sudo chown daemon:daemon /var/run/enma
+    $ sudo chmod 700 /var/run/enma
+
+  8. 起動
+
+    $ sudo /usr/local/libexec/enma -c /etc/enma.conf
+  
+* MTA の設定
+
+  メール受信時に ENMA を利用するように MTA を設定します。
+
+  - sendmail の場合
+    .mc ファイル中で MAIL_FILTER または INPUT_MAIL_FILTER マクロで
+    ENMA のmilter ソケットを指定し、sendmail.cf を生成します。
+
+    例) ENMA デフォルトのソケットを利用する場合：
+
+        INPUT_MAIL_FILTER(`enma', `S=inet:10025@127.0.0.1')dnl
+
+    INPUT_MAIL_FILTER 設定の詳細については、sendmail パッケージに含まれ
+    ている cf/README 等を参照してください。
+
+    また、MTA として使用する sendmail のバージョンが 8.13 以前の場合、
+    ENMA の設定項目 "milter.sendmail813" を "true" に設定してください。
+
+  - postfix (2.4 以降) の場合
+    ENMA の設定項目 "milter.postfix" を "true" に設定してください。
+    postfix の設定ファイル main.cf の smtpd_milters で ENMA の milter
+    ソケットを指定します。
+
+    例) ENMA デフォルトのソケットを利用する場合：
+
+        smtpd_milters = inet:127.0.0.1:10025
+
+    postfix の milter サポートの詳細については postfix パッケージに含ま
+    れている README_FILES/MILTER_README を参照してください。
+
+* 依存するライブラリのビルド
+
+  ライブラリを /usr/local 以下にインストールする例
+
+  - OpenSSL
+
+    $ tar zxf openssl-x.y.z.tar.gz
+    $ cd openssl-x.y.z
+    $ ./config threads shared --prefix=/usr/local
+    $ make
+    $ sudo make install
+
+  - ldns
+
+    $ tar zxf ldns-x.y.z.tar.gz
+    $ cd ldns-x.y.z
+    $ ./configure --prefix=/usr/local --with-ssl=/usr/local
+    $ make
+    $ sudo make install
+
+  - libbind
+
+    $ tar zxf bind-x.y.z
+    $ cd bind-x.y.z/lib/bind
+    $ ./configure --prefix=/usr/local --enable-threads --with-libtool --enable-ipv6
+    $ make
+    $ sudo make install
+
+  - libmilter
+
+    $ tar zxf sendmail.x.y.z.tar.gz
+    $ cd sendmail-x.y.z
+
+    - devtools/Site/site.config.m4 に以下を記述:
+
+    define(`confINCLUDEDIR', `/usr/local/include')
+    define(`confLIBDIR', `/usr/local/lib')
+    APPENDDEF(`confINCDIRS', `-I/usr/local/bind/include')
+    APPENDDEF(`confLIBS', `/usr/local/lib/libbind.a')
+    # その他の設定は各 OS に応じて追加してください
+
+    $ cd libmilter
+    $ ./Build
+    $ sudo ./Build install
+
+  OpenSSL、ldns および libmilter のビルド手順の詳細については、それ
+  ぞれのパッケージに付属のドキュメント等を参照してください。
+
+* 大規模用途のバイナリを作成する場合の注意点
+
+  - libmilter で SM_CONF_POLL を有効にする
+
+    sendmail との通信に select() を利用すると、FD_SETSIZE 以上の値を持
+    つファイルディスクリプタを扱えません。poll() を使用すべきです。その
+    ため、libmilter をビルドする際には SM_CONF_POLL を定義します。
+
+    build/site.config.m4.poll-generic を参考にして下さい。
+
+      # site.config.m4 に追加する設定
+      APPENDDEF(`confENVDEF', `-DSM_CONF_POLL=1')
+
+    build/build_all.sh を使いインストールした場合は、自動的に有効になり
+    ます。
+
+  - SPARC 版 Solaris 環境では、gcc の "-m64" オプションを利用する
+
+    Solaris の 32bit 版の fopen (libbind内で使用されている) は 255 より
+    大きな値のファイルディスクリプタを扱えません。そこで 64bit 版のバイ
+    ナリを作成する "-m64" オプションを使用し、ライブラリや ENMA を作成
+    します。
+
+    - libbind
+
+      $ ./configure CFLAGS=-m64 LDFLAGS=-m64
+
+    - libmilter
+
+      build/site.config.m4.poll-m64 を参考にして下さい。
+
+      # site.config.m4 に追加する設定
+      APPENDDEF(`confENVDEF', `-DSM_CONF_POLL=1')
+      APPENDDEF(`confCCOPTS', `-m64')
+
+    - ENMA
+
+      $ ./configure CFLAGS=-m64 LDFLAGS=-m64
+
+$Id: INSTALL.ja 1454 2011-12-05 02:05:19Z takahiko $

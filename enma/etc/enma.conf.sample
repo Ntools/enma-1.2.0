@@ -1,0 +1,50 @@
+#
+# sample of enma configuration
+#
+# $Id: enma.conf.sample 1457 2011-12-21 11:42:17Z takahiko $
+
+
+## Milter ##
+milter.socket:  inet:10025@127.0.0.1
+milter.user:    daemon
+milter.pidfile: /var/run/enma/enma.pid
+milter.chdir:   /var/tmp
+milter.timeout: 7210
+milter.loglevel:   0
+milter.sendmail813: false
+milter.postfix: false
+
+
+## Network ##
+common.exclusion_addresses: 127.0.0.1,::1
+
+
+## Syslog ##
+syslog.ident:       enma
+syslog.facility:    mail
+syslog.logmask:     info
+
+
+## SPF ##
+spf.auth: true
+spf.explog: true
+
+
+## SIDF ##
+sidf.auth: true
+sidf.explog: true
+
+
+## DKIM ##
+dkim.auth: true
+dkim.signheader_limit: 10
+dkim.accept_expired_signature: false
+dkim.rfc4871_compatible: false
+
+
+## DKIM ADSP ##
+dkimadsp.auth: true
+
+
+## Authentication-Results ##
+authresult.identifier:  localhost

@@ -1,0 +1,35 @@
+#
+# $Id: Makefile.in 1336 2011-07-20 02:45:00Z takahiko $
+#
+
+SUBDIRS = libsauth enma
+
+.PHONY: install
+
+all:
+	@for subdir in $(SUBDIRS); \
+	do \
+		(cd $$subdir && $(MAKE) all); \
+	done
+
+docs:
+	doxygen
+
+install:
+	@for subdir in $(SUBDIRS); \
+	do \
+		(cd $$subdir && $(MAKE) install); \
+	done
+
+clean:
+	@for subdir in $(SUBDIRS); \
+	do \
+		(cd $$subdir && $(MAKE) clean); \
+	done
+
+distclean: clean
+	@for subdir in $(SUBDIRS); \
+	do \
+		(cd $$subdir && $(MAKE) distclean); \
+	done
+	rm -f Makefile config.status config.h config.log

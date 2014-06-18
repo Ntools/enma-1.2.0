@@ -1,0 +1,73 @@
+                            README of ENMA
+                            2012年 1月31日
+
+* ENMA
+
+  ENMA は、送信ドメイン認証のための milter プログラムです。送信アドレス
+  を SPF、Sender ID、DKIM および DKIM ADSP の方式で認証し、認証結果を
+  Authentication-Results: フィールドとして挿入します。
+
+  ENMA は、以下の RFC を実装しています:
+
+  - RFC4406 (Sender ID: Authenticating E-Mail)
+  - RFC4407 (Purported Responsible Address)
+  - RFC4408 (Sender Policy Framework)
+  - RFC4871 (DKIM Signatures, obsoleted by RFC6376)
+  - RFC5451 (Authentication-Results Header Field)
+  - RFC5617 (ADSP)
+  - RFC5672 (RFC 4871 Update, obsoleted by RFC6376)
+  - RFC6376 (DKIM Signatures)
+
+  ENMA は、IIJ が開発しました。IIJ は、業務として種々の送信ドメイン認証
+  ソフトウェアを利用してきましたが、どれも不安定でした。ENMA は、大手
+  ISP の運用に耐えられるように設計実装され、十分にテストされています。
+
+* 機能
+
+  - SPF 認証
+
+    SMTP MAIL FROM から送信ドメインを抽出し DNS を引きます。SMTP MAIL
+    FROM に "<>" が指定されている場合は SMTP EHLO/HELO で指定されたドメ
+    インを用います。認証結果は Authentication-Results: フィールドを用い
+    て付与します。Received-SPF: フィールドは使用しません。
+
+  - Sender ID 認証
+
+    PRA を使用してメールのヘッダから送信ドメインを抽出し DNS を引きます。
+    認証結果は Authentication-Results: フィールドを用いて付与します。
+
+  - DKIM 認証
+
+　　DKIM-Signature フィールドから送信ドメインを抽出し DNS を引きます。
+    電子署名を検証して、送信元の正当性とメールの完全性を認します。認証
+    結果は Authentication-Results: フィールドを用いて付与します。
+
+  - DKIM ADSP 検査
+
+    DKIM 認証の結果が pass で、かつ送信者と署名者が同じ(From: フィール
+    ドと i タグの値が一致している)場合は、DNS を引かず、結果を pass に
+    します。
+
+    それ以外は、From: フィールドから送信アドレスを抽出し、DNS から
+    ADSP の情報を得て、検査結果を Authentication-Results: フィールドに
+    付与します。
+
+  - Authentication-Results: フィールドの挿入/削除
+
+    SPF および Sender ID の認証結果を Authentication-Results: フィール
+    ドに記録します。また、外部から偽の Authentication-Results: フィール
+    ドを挿入されるのを防ぐため、設定項目 authresult.identifier で指定し
+    たホスト名を含んだ Authentication-Results: フィールドを削除します。
+
+* 連絡先
+
+  ENMA のパッケージは以下のウェブサイトで入手できます:
+
+    http://enma.sourceforge.net/
+
+  ENMA に関する質問や議論には以下のメーリングリストを活用してください:
+
+    enma-users@lists.sourceforge.net (英語)
+    enma-users-jp@lists.sourceforge.net (日本語)
+
+$Id: README.ja 1483 2012-01-30 08:21:27Z takahiko $

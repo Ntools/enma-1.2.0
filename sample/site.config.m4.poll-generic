@@ -1,0 +1,15 @@
+dnl # $Id: site.config.m4.poll-generic 1464 2011-12-21 11:56:44Z takahiko $
+dnl #
+dnl # site.config.m4 sample to build libmilter with libbind under general OSes
+
+define(`confINCLUDEDIR', `@prefix@/include')
+define(`confLIBDIR', `@prefix@/lib')
+define(`confLIBOWN', `@user@')
+define(`confLIBGRP', `@group@')
+define(`confINCOWN', `@user@')
+define(`confINCGRP', `@group@')
+
+APPENDDEF(`confINCDIRS', `-I@prefix@/bind/include')
+APPENDDEF(`confLIBS', `@prefix@/lib/libbind.a')
+APPENDDEF(`confENVDEF', `-DSM_CONF_POLL=1 -DNETINET6=1 -DNEEDSGETIPNODE=0')
+APPENDDEF(`confOPTIMIZE', `-g')

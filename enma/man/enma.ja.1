@@ -1,0 +1,198 @@
+.Dd Apr 03, 2009
+.Dt ENMA 1
+.Sh 名前
+.Nm enma
+.Nd 送信ドメイン認証のための milter プログラム
+.Sh 書式
+.Nm
+.Op Fl cvh
+.Op Fl o Ar key=value
+.Sh 説明
+.Nm
+は、送信ドメイン認証のための milter プログラムです。送信者を SPF、
+Sender ID、DKIM および DKIM ADSP の方式で認証し、認証結果を
+Authentication-Results: フィールドとして挿入します。
+.Pp
+設定は、以下の優先順序で反映されます。
+.Pp
+.Bl -enum -offset indent -compact
+.It
+オプション
+.It
+設定ファイル
+.It
+デフォルト値
+.El
+.Sh オプション
+.Bl -tag -width indent
+.It Fl h
+利用可能なオプション一覧を表示します。
+.It Fl v
+詳細なログを出力します。
+.It Fl c Ar filename
+設定ファイルを指定します。
+.It Fl o Ar key=value
+下記の「設定」を記述できます。key に項目名を、value に値を記述します。
+.El
+.Sh 設定ファイル
+各行は「設定項目名:設定値」の形式をとります。「設定項目名:」と「設定値」
+の間のスペースは無視されます。'#'から始まる行や空白行は無視されます。設
+定を記述しない項目はデフォルト値となります。パスを指定する場合には、絶
+対パスで指定します。
+.Bl -tag -width indent
+.It milter.verbose (-v)
+詳細なログを出力します。true または false を指定してください。(デフォル
+ト値: false)
+.It milter.conffile (-c)
+設定ファイルへのパスを指定します。省略した場合はデフォルト値を参照し、
+設定ファイルは参照しません。通常は、コマンドライン引数として指定します。
+(デフォルト値: 指定なし)
+.It milter.user
+milter が動作するユーザーを指定します。無指定の場合は起動時のユーザーで
+動作します。スタートアップスクリプトで起動した後、権限を落としたい場合
+に使用します。(デフォルト値: 指定なし)
+.It milter.pidfile
+PID ファイルへのパスを指定します。milter.user が指定されている場合は、
+その権限で PID ファイルが書き出されるので、ファイルを書き出すディレクト
+リに対して必要な権限を与えてください。(デフォルト値:
+/var/run/enma/enma.pid)
+.It milter.chdir
+起動後に移動する作業ディレクトリを指定します。省略した場合は何もしませ
+ん。(デフォルト値: 指定なし)
+.It milter.socket
+MTA からの milter 接続を受け付けるソケットを指定します。形式は下記のい
+ずれか:
+.Bl -enum -offset indent -compact
+.It
+inet:<ポート番号>@<IPアドレス または ホスト名>
+.It
+unix:<UNIXドメインソケットへのパス>
+.El
+詳細は Sendmail パッケージに含まれている "cf/README" 等を参照してくださ
+い。(デフォルト値: inet:10025@127.0.0.1)
+.It milter.timeout
+milter が MTA と通信する際のタイムアウトを秒単位で指定します。(デフォル
+ト値: 7210)
+.It milter.loglevel
+(enma ではなく) libmilter のログレベルを指定します。主にデバッグの際に
+使用します。詳細は Sendmail パッケージに含まれている
+"libmilter/docs/smfi_setdbg.html" を参照してください。(デフォルト値: 0)
+.It milter.sendmail813
+MTA が sendmail 8.13 以前の場合には true を、sendmail 8.14 以降の場合に
+は false を指定します。(デフォルト値: false)
+.It milter.postfix
+MTA が postfix の場合には true を、Sendmail の場合には false を指定しま
+す。(デフォルト値: false)
+.It syslog.ident
+syslog に出力するメッセージに付ける識別子を指定します。(デフォルト値:
+enma)
+.It syslog.facility
+使用する syslog の facility を指定します。(デフォルト値: local4)
+.It syslog.logmask
+出力する syslog のマスクを指定します。この項目で指定したレベル以上のメッ
+セージを syslog に出力します。通常は info を指定してください。(デフォル
+ト値: info)
+.It common.exclusion_addresses
+認証処理の対象外とするIPアドレスレンジを指定します。この項目で指定した
+接続元からのメールに対しては認証処理をしません。カンマ区切りで複数のア
+ドレスレンジを指定できます。(デフォルト値: 127.0.0.1,::1)
+.It spf.auth
+SPF で認証する場合に true を、おこなわない場合に false を指定してくださ
+い。(デフォルト値: true)
+.It spf.explog
+SPF 認証の結果が "hardfail" だった場合に "exp" modifier を評価しログに
+出力する機能を有効にします。true または false を指定してください。
+"exp" modifier については RFC4408 6.2. 節を参照してください。(デフォル
+ト値: true)
+.It sidf.auth
+Sender ID で認証する場合に true を、おこなわない場合に false を指定して
+ください。(デフォルト値: true)
+.It sidf.explog
+Sender ID 認証の結果が "hardfail" だった場合に "exp" modifier を評価し
+ログに出力する機能を有効にします。true または false を指定してください。
+"exp" modifier については RFC4408 6.2. 節を参照してください。(デフォル
+ト値: true)
+.It dkim.auth
+DKIM で認証する場合に true を、おこなわない場合に false を指定してくだ
+さい。(デフォルト値: true)
+.It dkim.signheader_limit
+認証の対象とする DKIM-Signature ヘッダの数の最大値を指定します。
+DKIM-Signature ヘッダはメッセージの上にあるものから優先して評価され、こ
+の項目で指定した数を超えた DKIM-Signature ヘッダは無視されます。(デフォ
+ルト値: 10)
+.It dkim.accept_expired_signature
+有効期限が切れた DKIM 署名を有効扱いにする場合に ture を、無効扱いにす
+る場合に false を指定してください。通常は false を指定してください。(デ
+フォルト値: false)
+.It dkimadsp.auth
+DKIM ADSP で認証する場合に true を、おこなわない場合に false を指定して
+ください。(デフォルト値: true)
+.It authresult.identifier
+Authentication-Results: フィールドを識別するためのホスト名を指定します。
+受信したメールに、この識別子を持つ Authentication-Results: フィールドが
+存在する場合はそれを削除します。また、認証結果を
+Authentication-Results: フィールドとして挿入する際に、この識別子が使用
+されます。(デフォルト値: localhost)
+.El
+.Sh ログ
+ログは syslog に出力します。syslog の facility およびマスクは、それぞれ
+設定項目 "syslog.facility" および "syslog.logmask" によって指定します。
+.Sh ログの例
+正常に認証処理がおこなわれた場合：
+.Bd -literal
+[m75AKEOh009630] [SPF-auth] ipaddr=192.168.1.1, eval=smtp.mailfrom, helo=example.jp, envfrom=<user@example.jp>, score=pass
+[m75AKEOh009630] [SIDF-auth] ipaddr=192.168.1.1, header.From=user@example.jp, score=pass
+[m75AKEOh009630] [DKIM-auth] header.i=user@example.jp, score=pass
+[m75AKEOh009630] [DKIM-ADSP-auth] header.from=user@example.jp, score=pass
+.Ed
+.Pp
+認証に必要な情報がそろわず、処理をスキップした場合：
+.Bd -literal
+[m75AKEOh009630] [SPF-auth] score=permerror
+[m75AKEOh009630] [SIDF-auth] score=permerror
+[m75AKEOh009630] [DKIM-auth] score=permerror
+[m75AKEOh009630] [DKIM-ADSP-auth] score=permerror
+.Ed
+.Pp
+署名が付いていなかった場合：
+.Bd -literal
+[m75AKEOh009630] [DKIM-auth] score=none
+.Ed
+.Sh ログの各項目の説明
+.Em 共通
+.Bl -tag -width indent
+.It [m75AKEOh009630]
+MTA が受け付けた SMTP トランザクションを識別するための queue ID
+.It [SIDF-auth], [SPF-auth], [DKIM-auth], [DKIM-ADSP-auth]
+それぞれ、Sender ID、SPF、DKIM、DKIM ADSP の認証結果を示す。
+.It ipaddr=192.168.1.1
+送信元のIPアドレス
+.It score=pass
+認証結果のスコア
+.El
+.Em SPF
+.Bl -tag -width indent
+.It eval=smtp.mailfrom
+認証情報として MAIL FROM を用いたか EHLO/HELO を用いたか
+.It helo=example.jp
+送信元が提示した EHLO/HELO
+.It envfrom=<user@example.jp>
+送信元が提示した MAIL FROM
+.El
+.Em Sender ID
+.Bl -tag -width indent
+.It header.From=user@example.jp
+認証情報として使用したフィールド名およびメールアドレス
+.El
+.Em DKIM
+.Bl -tag -width indent
+.It header.i=user@example.jp
+署名者のメールアドレスまたはドメイン
+.El
+.Em DKIM ADSP
+.Bl -tag -width indent
+.It header.From=user@example.jp
+認証情報として使用したフィールド名およびメールアドレス
+.El
+.Sh スコア
+RFC5451 を参照のこと。

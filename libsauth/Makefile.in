@@ -1,0 +1,77 @@
+# $Id: Makefile.in 1437 2011-12-04 07:20:50Z takahiko $
+
+prefix	= @prefix@
+exec_prefix	= @exec_prefix@
+bindir	= @bindir@
+libdir	= @libdir@
+includedir	= @includedir@
+sysconfdir	= @sysconfdir@
+localstatedir	= @localstatedir@
+srcdir	= @srcdir@
+top_builddir	= ..
+
+CC	= @CC@
+VPATH	= src
+
+INSTALL	= @INSTALL@
+INSTALL_PROGRAM	= @INSTALL_PROGRAM@
+INSTALL_SCRIPT	= @INSTALL_SCRIPT@
+INSTALL_DATA	= @INSTALL_DATA@
+
+LIBTOOL	= @LIBTOOL@ --tag=CC
+LT_COMPILE	= $(LIBTOOL) --mode=compile $(CC)
+LT_LINK	= $(LIBTOOL) --mode=link $(CC)
+LT_INSTALL	= $(LIBTOOL) --mode=install $(INSTALL)
+LT_CLEAN	= $(LIBTOOL) --mode=clean rm -f
+
+CPPFLAGS	= -I. -Iinclude -I..
+CPPFLAGS	+= @CPPFLAGS@ @DEFS@
+CFLAGS	= @CFLAGS@
+
+LIBSAUTH_VERSIONINFO	= 0:0:0
+
+SRCS	= @RESOLVER_SRC@ bitmemcmp.c inet_ppton.c inetdomain.c inetmailbox.c intarray.c \
+	keywordmap.c mailheaders.c pstring.c ptrarray.c sidfenum.c \
+	sidfmacro.c sidfpolicy.c sidfpra.c sidfrecord.c sidfrequest.c \
+	strarray.c strpairarray.c strpairlist.c strtokarray.c \
+	xbuffer.c foldstring.c xparse.c xskip.c \
+	dkimadsp.c dkimauthor.c dkimpublickey.c dkimsigner.c dkimverifier.c \
+	dkimcanonicalizer.c dkimconverter.c dkimsignature.c dkimtaglistobject.c dkimwildcard.c \
+	dkimdigester.c dkimpolicybase.c dkimsignpolicy.c dkimverificationpolicy.c dkimenum.c
+HEADERS	= include/dnsresolv.h include/ptrarray.h include/strpairarray.h include/inetmailbox.h \
+	include/mailheaders.h include/xbuffer.h include/sidf.h include/dkim.h
+OBJS	:= $(patsubst %.c,%.lo,$(SRCS))
+LDFLAGS	= @RESOLVER_LIBS@
+
+.SUFFIXES: .lo .la
+
+all: libsauth.la
+
+install-all: install install-dev
+
+install: libsauth.la
+	$(INSTALL) -d $(DESTDIR)$(libdir)
+	$(LT_INSTALL) $^ $(DESTDIR)$(libdir)
+
+install-dev: $(HEADERS)
+	$(INSTALL) -d $(DESTDIR)$(includedir)
+	$(INSTALL_DATA) $^  $(DESTDIR)$(includedir)
+
+libsauth.la: $(OBJS)
+	$(LT_LINK) -o $@ $(CFLAGS) -rpath $(libdir) -version-info $(LIBSAUTH_VERSIONINFO) $^ $(LDFLAGS)
+
+dstat.map: include/dkim.h
+	rm -f $@
+	grep DSTAT_ $< | grep -v define | sed -e 's/\(DSTAT_[A-Z0-9_]*\).*/CODE2STRMAP(\1),/' > $@
+
+src/dkimenum.c: dstat.map
+
+.c.lo:
+	$(LT_COMPILE) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
+clean:
+	$(LT_CLEAN) $(OBJS) libsauth.la
+	rm -f dstat.map *~
+
+distclean: clean
+	rm -f Makefile

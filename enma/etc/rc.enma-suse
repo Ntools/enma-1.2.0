@@ -1,0 +1,87 @@
+#!/bin/bash
+#
+# Copyright (c) 2008-2009 Internet Initiative Japan Inc. All rights reserved.
+#
+# The terms and conditions of the accompanying program
+# shall be provided separately by Internet Initiative Japan Inc.
+# Any use, reproduction or distribution of the program are permitted
+# provided that you agree to be bound to such terms and conditions.
+#
+# $Id: rc.enma-suse 1467 2011-12-21 15:51:00Z koga $
+# 
+# chkconfig: 345 79 31
+# description: A milter program for domain authentication technologies
+
+# source function library
+. /etc/rc.status
+
+RETVAL=0
+prog=enma
+
+ENMA=/usr/lib/enma
+CONF_FILE=/etc/enma.conf
+LOCK_FILE=/var/lock/subsys/enma
+
+
+function start()
+{
+    echo -n $"Starting ${prog}: "
+    #ulimit -n 65000      # The maximum number of open file descriptors
+    #ulimit -s 512        # The maximum stack size
+    ${ENMA} -c ${CONF_FILE} && rc_status -v || rc_status -v
+    RETVAL=$?
+    [ ${RETVAL} -eq 0 ] && touch ${LOCK_FILE}
+}
+
+function stop()
+{
+    echo -n $"Stopping ${prog}: "
+    killproc ${ENMA} -TERM
+    rc_status -v
+    RETVAL=$?
+    [ ${RETVAL} -eq 0 ] && rm -f ${LOCK_FILE}
+}
+
+function restart()
+{
+    stop && sleep 5 && start
+}
+
+
+case "$1" in
+    start)
+        ENMA_PID=`pgrep -f ${ENMA}`
+        if [ ! "$ENMA_PID" = "" ]; then
+           echo -n "${prog} is already running (pid ${ENMA_PID})"
+           rc_status -s
+        else
+           start
+        fi
+        ;;
+    stop)
+        stop
+        ;;
+    restart|reload)
+        restart
+        ;;
+    condrestart)
+        [ -f ${LOCK_FILE} ] && restart
+        ;;
+    status)
+        echo -n "Checking for ${prog}: "
+        ENMA_PID=`pgrep -f ${ENMA}`
+        if [ "$ENMA_PID" = "" ]; then
+                rc_status -u
+        else
+            echo "running (pid ${ENMA_PID})"
+                _rc_status=0
+                rc_status -v
+        fi
+        ;;
+    *)
+        echo "Usage: ${prog} {start|stop|restart|reload|condrestart|status}"
+        RETVAL=1
+        ;;
+esac
+
+exit ${RETVAL}

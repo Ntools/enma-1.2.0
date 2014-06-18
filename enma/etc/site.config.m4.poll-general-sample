@@ -1,0 +1,11 @@
+dnl # $Id: site.config.m4.poll-general-sample 1458 2011-12-21 11:43:58Z takahiko $
+dnl #
+dnl # site.config.m4 sample for general OS
+
+define(`confINCLUDEDIR', `@prefix@/include')
+define(`confLIBDIR', `@prefix@/lib')
+
+APPENDDEF(`confINCDIRS', `-I@prefix@/bind/include')
+APPENDDEF(`confLIBS', `@prefix@/lib/libbind.a')
+APPENDDEF(`confENVDEF', `-DSM_CONF_POLL=1')
+APPENDDEF(`confOPTIMIZE', `-g')

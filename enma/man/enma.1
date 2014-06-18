@@ -1,0 +1,194 @@
+.Dd Apr 03, 2009
+.Dt ENMA 1
+.Sh NAME
+.Nm enma
+.Nd A milter program for domain authentication technologies
+.Sh SYNOPSIS
+.Nm
+.Op Fl cvh
+.Op Fl o Ar key=value
+.Sh DESCRIPTION
+.Nm
+is a program of domain authentication technologies. It authenticates
+message senders with SPF, Sender ID, DKIM and/or DKIM ADSP and inserts
+the Authentication-Results: field with authentication results.
+.Pp
+Configurations have order of preference as follows:
+.Pp
+.Bl -enum -offset indent -compact
+.It
+The command line options
+.It
+The configuration file
+.It
+The default values
+.El
+.Sh OPTIONS
+.Bl -tag -width indent
+.It Fl h
+Displays available options.
+.It Fl v
+Verbose mode.
+.It Fl c Ar filename
+Specifies a configuration file.
+.It Fl o Ar key=value
+Specifies configuration below. 
+.El
+.Sh CONFIGURATION FILE
+Each line is in the format of "key:value". Spaces between "key:" and
+"value" are ignored. Lines begging with '#' and empty lines are
+ignored. If there is no configuration of a given "key:", its default
+value is used.  Absolute paths must be used when specified.
+.Bl -tag -width indent
+.It milter.verbose (-v)
+If true, log is recorded in detail. (Default value: false)
+.It milter.conffile (-c)
+Specifies the path to the configration file. If ommited, no
+configuration file is read and the default values are used.  The -c
+option should be used usually instead. (Default value: no value)
+.It milter.user
+Specifies a user name. If not specified, the user name of execution is
+used. This is typically used to step down the user authority of enma
+executed in a start-up script.  (Default value: no value)
+.It milter.pidfile
+Specify the path to the PID file. If milter.user is specified, the PID
+file is written as the user. So, appropriate permission should be
+given to the directory. (Default value: /var/run/enma/enma.pid)
+.It milter.chdir
+Specified a working directory after execution. If ommited, nothing
+happens. (Default value: no value)
+.It milter.socket
+Specifies socket type of milter communication from MTA.  Choose one of
+the followings:
+.Bl -enum -offset indent -compact
+.It
+inet:<port number>@<IP adddress or hostname>
+.It
+unix:<a path to UNIX domain socket>
+.El
+For more information, refer to "cf/README" contained in the Sendmail
+package. (Default value: inet:10025@127.0.0.1)
+.It milter.timeout
+Specifies timeout of milter communication with MTA in seconds.
+(Default value: 7210)
+.It milter.loglevel
+Specifies log level of libmilter (not enma). This should be used for
+debugging purpose.  For more information, please refer to
+"libmilter/docs/smfi_setdbg.html" in the Sendmail package. (Default
+value: 0)
+.It milter.sendmail813
+If the version of Sendmail is 8.13 or earlier, specify "true",
+Otherwise, specify "false". (Default value: false)
+.It milter.postfix
+If true, MTA is Postfix. If false, MTA is Sendmail. (Default value:
+false)
+.It syslog.ident
+Specified an identifier labeled to syslog messages. (Default value:
+enma)
+.It syslog.facility
+Specifies facility of syslog. (Default value: local4)
+.It syslog.logmask
+Specifies mask of syslog.  Messages which level is over this value are
+printed to syslog. Usually "info" should be specified. (Default
+value: info)
+.It common.exclusion_addresses
+Specifies IP address ranges which are exception of domain
+authentication. If the source IP address of the peer matches the
+ranges, domain authentication process is omitted. Multiple ranges can
+be enumerated with the comma separator. (Default value: 127.0.0.1,::1)
+.It spf.auth
+If true, SPF authentication is processed.  (Default value: true)
+.It spf.explog
+If true, the "exp" modifier is evaluated in the case where SPF
+authentication result is "hardfail".  For more information about the
+"exp" modifier, refer to Section 6.2 of RFC4408.  (Default value:
+true)
+.It sidf.auth
+If true, Sender ID authentication is processed. (Default value: true)
+.It sidf.explog
+If true, the "exp" modifier is evaluated in the case where Sender ID
+authentication result is "hardfail".  For more information about the
+"exp" modifier, refer to Section 6.2 of RFC4408.  (Default value:
+true)
+.It dkim.auth
+If true, DKIM authentication is processed. (Default value: true)
+.It dkim.signheader_limit
+Specifies a limit number of the DKIM-Signature: fields.  They are
+evaluated from the top, and are ignored if the number reaches the
+limit.  (Default value: 10)
+.It dkim.accept_expired_signature
+If true, expired DKIM signatures are treated as valid. This value
+should be false in normal case. (Default value: false)
+.It dkimadsp.auth
+If turu, DKIM ADSP check is processed. (Default value: true)
+.It authresult.identifier
+Specifies the hostname to identity the Authentication-Results:
+field. If the Authentication-Results: field which has the same
+identifier exists, the entire field is removed. Also, this identifier
+is used when the Authentication-Results: field is inserted to record
+authentication result.  (Default value: localhost)
+.El
+.Sh LOG
+Log is recored to syslog. facility and mask of syslog are specified
+with "syslog.facility" and "syslog.logmask", respectively.
+.Sh EXAMPLE OF LOG
+The case where authentication process was normally done:
+.Bd -literal
+[m75AKEOh009630] [SPF-auth] ipaddr=192.168.1.1, eval=smtp.mailfrom, helo=example.jp, envfrom=<user@example.jp>, score=pass
+[m75AKEOh009630] [SIDF-auth] ipaddr=192.168.1.1, header.From=user@example.jp, score=pass
+[m75AKEOh009630] [DKIM-auth] header.i=user@example.jp, score=pass
+[m75AKEOh009630] [DKIM-ADSP-auth] header.from=user@example.jp, score=pass
+.Ed
+.Pp
+The case where authentication process was skipped because of lack of
+authentication information:
+.Bd -literal
+[m75AKEOh009630] [SPF-auth] score=permerror
+[m75AKEOh009630] [SIDF-auth] score=permerror
+[m75AKEOh009630] [DKIM-auth] score=permerror
+[m75AKEOh009630] [DKIM-ADSP-auth] score=permerror
+.Ed
+.Pp
+The case where no signature exists:
+.Bd -literal
+[m75AKEOh009630] [DKIM-auth] score=none
+.Ed
+.Sh DESCRIPTION OF LOG ITEM
+.Em Common
+.Bl -tag -width indent
+.It [m75AKEOh009630]
+Queue ID to identify SMTP transaction labeled by MTA
+.It [SIDF-auth], [SPF-auth], [DKIM-auth], [DKIM-ADSP-auth]
+These indicates Sender ID, SPF, DKIM, DKIM ADSP, respectively.
+.It ipaddr=192.168.1.1
+The IP address of the sender
+.It score=pass
+Score of authentication result
+.El
+.Em SPF
+.Bl -tag -width indent
+.It eval=smtp.mailfrom
+Which authentication information was used, either MAIL FROM or
+EHLO/HELO.
+.It helo=example.jp
+EHLO/HELO provided by the sender
+.It envfrom=<user@example.jp>
+MAIL FROM provided by the sender
+.El
+.Em Sender ID
+.Bl -tag -width indent
+.It header.From=user@example.jp
+The field name and the mail address used for authentication.
+.El
+.Em DKIM
+.Bl -tag -width indent
+.It header.i=user@example.jp
+The mail address or domain of a signer.
+.El
+.Em DKIM ADSP
+.Bl -tag -width indent
+.It header.From=user@example.jp
+The field name and the mail address used for authentication.
+.El
+.Sh SCORE
+See RFC5451.

@@ -1,0 +1,73 @@
+# $Id: Makefile.in 1448 2011-12-04 17:12:23Z takahiko $
+
+prefix	= @prefix@
+exec_prefix	= @exec_prefix@
+bindir	= @bindir@
+libexecdir	= @libexecdir@
+libdir	= @libdir@
+includedir	= @includedir@
+sysconfdir	= @sysconfdir@
+localstatedir	= @localstatedir@
+srcdir	= @srcdir@
+datarootdir	= @datarootdir@
+mandir	= @mandir@
+top_builddir	=   ..
+
+CC	= @CC@
+VPATH	= src tools
+
+INSTALL	= @INSTALL@
+INSTALL_PROGRAM	= @INSTALL_PROGRAM@
+INSTALL_SCRIPT	= @INSTALL_SCRIPT@
+INSTALL_DATA	= @INSTALL_DATA@
+
+LIBTOOL	= @LIBTOOL@ --tag=CC
+LT_COMPILE	= $(LIBTOOL) --mode=compile $(CC)
+LT_LINK	= $(LIBTOOL) --mode=link $(CC)
+LT_INSTALL	= $(LIBTOOL) --mode=install $(INSTALL)
+LT_CLEAN	= $(LIBTOOL) --mode=clean rm -f
+
+CPPFLAGS	= -Iinclude -I../libsauth/include -I..
+CPPFLAGS	+= @CPPFLAGS@ @DEFS@
+CFLAGS	= @CFLAGS@
+LDFLAGS	= -L../libsauth -lsauth @LIBS@ @LDFLAGS@
+ENMALDFLAGS	= -lmilter
+
+SRCS	= addr_util.c authresult.c config_loader.c cryptomutex.c daemonize.c \
+	enma.c enma_config.c enma_dkim.c enma_mfi.c enma_mfi_ctx.c enma_sidf.c \
+	ipaddressrange.c loghandler.c string_util.c syslogtable.c
+OBJS	:= $(patsubst %.c,%.lo,$(SRCS))
+
+BINS	:= enma sidfquery
+
+.SUFFIXES: .lo .la
+
+all: $(BINS)
+ 
+install: install-bin install-man
+
+install-man:
+	$(INSTALL) -d $(DESTDIR)$(mandir)/man1 $(DESTDIR)$(mandir)/ja/man1
+	$(INSTALL_DATA) man/enma.1 $(DESTDIR)$(mandir)/man1/enma.1
+	$(INSTALL_DATA) man/enma.ja.1 $(DESTDIR)$(mandir)/ja/man1/enma.1
+
+install-bin: $(BINS)
+	$(INSTALL) -d $(DESTDIR)$(bindir) $(DESTDIR)$(libexecdir)
+	$(LT_INSTALL) -c enma $(DESTDIR)$(libexecdir)
+	$(LT_INSTALL) -c sidfquery $(DESTDIR)$(bindir)
+
+enma: $(OBJS)
+	$(LT_LINK) $(CFLAGS) -o $@ $+ $(LDFLAGS) $(ENMALDFLAGS)
+
+sidfquery: sidfquery.lo
+	$(LT_LINK) $(CFLAGS) -o $@ $+ $(LDFLAGS)
+
+.c.lo:
+	$(LT_COMPILE) -c $(CPPFLAGS) $(CFLAGS) $<
+
+clean:
+	$(LT_CLEAN) $(BINS) $(OBJS)
+	rm -rf $(BINS) *~
+
+distclean: clean
+	rm -f Makefile
